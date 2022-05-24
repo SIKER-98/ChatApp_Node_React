@@ -1,15 +1,23 @@
 import React, {useEffect, useRef, useState} from "react";
 import styled from "styled-components";
-import Contacts from "./Contacts";
 import Logout from "./Logout";
 import ChatInput from "./ChatInput";
 import axios from "axios";
 import {getAllMessageRoute, sendMessageRoute} from "../utils/ApiRoutes";
 import {v4 as uuidv4} from 'uuid'
+import {languages} from "../utils/Languages";
+import {render} from "react-dom";
+// import * as deepl from "deepl-node";
 
 const ChatContainer = ({currentChat, currentUser, socket}) => {
     const [messages, setMessages] = useState([])
     const [arrivalMessage, setArrivalMessage] = useState(null)
+
+    const [translateLang, setTranslateLang] = useState({name: "None"})
+    const [translate, setTranslate] = useState(null)
+
+    const DEEPL_API_KEY = "5735d7e3-113a-8810-a9d6-dbb4a7e30cc2:fx"
+
 
     const scrollRef = useRef()
 
@@ -22,7 +30,6 @@ const ChatContainer = ({currentChat, currentUser, socket}) => {
                     to: currentChat._id
                 })
 
-                console.log(response.data)
                 setMessages(response.data)
             }
         }
@@ -65,6 +72,41 @@ const ChatContainer = ({currentChat, currentUser, socket}) => {
         scrollRef.current?.scrollIntoView({behavior: "smooth"})
     }, [messages])
 
+    const selectLanguage = (language, index) => {
+        translateMessages(language)
+        setTranslateLang(language)
+        setTranslate(index)
+    }
+
+    const translateMessages = (language) => {
+        if (language !== null)
+            if (language?.name !== "None") {
+                const messageList = messages
+
+                messageList.forEach((message) => {
+                    const params = new URLSearchParams({
+                        'auth_key': DEEPL_API_KEY,
+                        'target_lang': language.language,
+                        'text': message.message
+                    })
+
+                    fetch('https://api-free.deepl.com/v2/translate', {
+                        method: 'POST',
+                        body: params,
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded',}
+                    })
+                        .then(r => r.json())
+                        .then(response => {
+                            message.message = response.translations[0].text
+                        })
+                        .catch(error => {
+                            console.log(error)
+                        })
+                })
+
+                setMessages(messageList)
+            }
+    }
 
     return (
         <Container>
@@ -80,6 +122,24 @@ const ChatContainer = ({currentChat, currentUser, socket}) => {
                 </div>
 
                 <Logout/>
+            </div>
+
+            <div className={"translate"}>
+                <div className={"translate-header"}>
+                    Choose language to translate
+                </div>
+                <div className={"translate-languages"}>
+                    {
+                        languages.map((language, index) => (
+                            <button key={index}
+                                    onClick={() => selectLanguage(language, index)}
+                                    className={`language-button ${translate === index ? "selected" : ""}`}
+                            >
+                                {language.name}
+                            </button>
+                        ))
+                    }
+                </div>
             </div>
 
             {/*<Messages*/}
@@ -110,7 +170,7 @@ const ChatContainer = ({currentChat, currentUser, socket}) => {
 const Container = styled.div`
   padding-top: 1rem;
   display: grid;
-  grid-template-rows: 10% 78% 12%;
+  grid-template-rows: 6% 25% 60% 9%;
   gap: 0.1rem;
   overflow: hidden;
 
@@ -143,6 +203,39 @@ const Container = styled.div`
     }
 
   }
+
+  .translate {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+
+    .translate-header {
+      color: white;
+      font-size: 1.2rem;
+      text-transform: uppercase;
+    }
+
+    .translate-languages {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+
+      .language-button {
+        padding: 0.3rem 0.5rem;
+        border-radius: 0.5rem;
+        color: white;
+        background-color: #ffffff39;
+      }
+
+      .selected {
+        background-color: #9186f3;
+      }
+    }
+
+  }
+
 
   .chat-messages {
     padding: 1rem 2rem;
@@ -186,7 +279,7 @@ const Container = styled.div`
 
   .received {
     justify-content: flex-start;
-    
+
     .content {
       background-color: #9900ff20;
     }
