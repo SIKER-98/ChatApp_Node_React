@@ -135,7 +135,7 @@ const ChatContainer = ({currentChat, currentUser, socket}) => {
                                     onClick={() => selectLanguage(language, index)}
                                     className={`language-button ${translate === index ? "selected" : ""}`}
                             >
-                                {language.name}
+                                 {language.name}
                             </button>
                         ))
                     }
