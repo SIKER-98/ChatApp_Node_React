@@ -72,38 +72,41 @@ const ChatContainer = ({currentChat, currentUser, socket}) => {
         scrollRef.current?.scrollIntoView({behavior: "smooth"})
     }, [messages])
 
-    const selectLanguage = (language, index) => {
-        translateMessages(language)
+    const selectLanguage = async (language, index) => {
+        await translateMessages(language)
         setTranslateLang(language)
         setTranslate(index)
     }
 
-    const translateMessages = (language) => {
+    const translateMessages = async (language) => {
         if (language !== null)
             if (language?.name !== "None") {
                 const messageList = messages
-
-                messageList.forEach((message) => {
-                    const params = new URLSearchParams({
-                        'auth_key': DEEPL_API_KEY,
-                        'target_lang': language.language,
-                        'text': message.message
-                    })
-
-                    fetch('https://api-free.deepl.com/v2/translate', {
-                        method: 'POST',
-                        body: params,
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded',}
-                    })
-                        .then(r => r.json())
-                        .then(response => {
-                            message.message = response.translations[0].text
+                    for(let message of messageList) {
+                        const index = messageList.indexOf(message)
+                        const params = new URLSearchParams({
+                            'auth_key': DEEPL_API_KEY,
+                            'target_lang': language.language,
+                            'text': message.message
                         })
-                        .catch(error => {
-                            console.log(error)
-                        })
-                })
 
+                        await fetch('https://api-free.deepl.com/v2/translate', {
+                            method: 'POST',
+                            body: params,
+                            headers: {'Content-Type': 'application/x-www-form-urlencoded',}
+                        })
+                            .then(r => r.json())
+                            .then(response => {
+                                message.message = response.translations[0].text
+                                const newMessageList = messageList
+                                messageList[index] = message
+                                console.log(index, messageList[index])
+                                console.log(1111)
+                            })
+                            .catch(error => {
+                                console.log(error)
+                            })
+                    }
                 setMessages(messageList)
             }
     }
@@ -135,7 +138,7 @@ const ChatContainer = ({currentChat, currentUser, socket}) => {
                                     onClick={() => selectLanguage(language, index)}
                                     className={`language-button ${translate === index ? "selected" : ""}`}
                             >
-                                 {language.name}
+                                {language.name}
                             </button>
                         ))
                     }
